@@ -34,6 +34,7 @@ import Schema from '@opentiny/tiny-engine-plugin-schema'
 import Page from '@opentiny/tiny-engine-plugin-page'
 import I18n from '@opentiny/tiny-engine-plugin-i18n'
 import Bridge from '@opentiny/tiny-engine-plugin-bridge'
+import Block from '@opentiny/tiny-engine-plugin-block'
 import Datasource from '@opentiny/tiny-engine-plugin-datasource'
 import Robot from '@opentiny/tiny-engine-plugin-robot'
 
@@ -44,7 +45,7 @@ import Styles from '@opentiny/tiny-engine-setting-styles'
 import '@opentiny/tiny-engine-theme'
 
 const addons = {
-  plugins: [Materials, Tree, Page, Datasource, Bridge, I18n, Script, Data, Schema, Help, Robot],
+  plugins: [Materials, Tree, Page, Block, Datasource, Bridge, I18n, Script, Data, Schema, Help, Robot],
   toolbars: [
     Logo,
     Breadcrumb,

@@ -7,10 +7,9 @@
     content="生成当前页面/区块的Vue代码到本地文件"
   >
     <template #reference>
-      <tiny-button type="primary" @click="generate">
+      <span class="icon" @click="generate">
         <svg-icon :name="icon"></svg-icon>
-        <span>下载源码</span>
-      </tiny-button>
+      </span>
     </template>
   </tiny-popover>
   <generate-file-selector
@@ -23,7 +22,7 @@
 
 <script>
 import { reactive } from 'vue'
-import { Popover, Button } from '@opentiny/vue'
+import { Popover } from '@opentiny/vue'
 import { getGlobalConfig, useBlock, useCanvas, useNotify, useLayout } from '@opentiny/tiny-engine-controller'
 import { fs } from '@opentiny/tiny-engine-utils'
 import { getSchema } from '@opentiny/tiny-engine-canvas'
@@ -34,7 +33,6 @@ import FileSelector from './FileSelector.vue'
 export default {
   components: {
     TinyPopover: Popover,
-    TinyButton: Button,
     GenerateFileSelector: FileSelector
   },
   props: {
@@ -186,8 +184,4 @@ export default {
   }
 }
 </script>
-<style lang="less" scoped>
-:deep(.svg-icon) {
-  font-size: 16px;
-}
-</style>
+<style lang="less" scoped></style>
