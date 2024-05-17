@@ -9,7 +9,7 @@
           :is="item.component"
           :icon="item.icon"
           :undoIcon="item.undoIcon"
-          :redoIcon="item.undoIcon"
+          :redoIcon="item.redoIcon"
         ></component>
         <span v-if="item?.splitLines">|</span>
       </template>
@@ -95,9 +95,9 @@ export default {
             ...toolbarItem,
             align: item.align,
             splitLines: !!item?.splitLines,
-            icon: item?.icon ?? '',
-            undoIcon: item?.undoIcon ?? '',
-            redoIcon: item?.redoIcon ?? ''
+            icon: item.icon,
+            undoIcon: item.undoIcon,
+            redoIcon: item.redoIcon
           }
         : item
     })
@@ -158,7 +158,7 @@ export default {
   }
   .toolbar-center {
     height: 32px;
-    line-height: 32px;
+    line-height: 28px;
     padding: 0 10px;
     border: 1px solid var(--ti-lowcode-toolbar-border-color);
     border-radius: 30px;
@@ -188,9 +188,6 @@ export default {
         cursor: pointer;
         font-size: 22px;
         color: var(--ti-lowcode-toolbar-title-color);
-      }
-      &:not(.disabled):hover {
-        background: var(--ti-lowcode-toolbar-view-active-bg);
       }
       &.active {
         color: var(--ti-lowcode-common-primary-color);
