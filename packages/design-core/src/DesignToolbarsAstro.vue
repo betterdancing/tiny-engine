@@ -5,7 +5,12 @@
     </div>
     <div class="toolbar-center">
       <template v-for="item in centerBar" :key="item.id">
-        <component :is="item.component"></component>
+        <component
+          :is="item.component"
+          :icon="item.icon"
+          :undoIcon="item.undoIcon"
+          :redoIcon="item.undoIcon"
+        ></component>
         <span v-if="item?.splitLines">|</span>
       </template>
     </div>
@@ -41,19 +46,24 @@ export default {
       },
       {
         id: 'redoundo',
+        undoIcon: 'undo-astro',
+        redoIcon: 'redo-astro',
         align: 'center'
       },
       {
         id: 'save',
+        icon: 'save-astro',
         align: 'center'
       },
       {
         id: 'refresh',
         align: 'center',
+        icon: 'refresh-astro',
         splitLines: true
       },
       {
         id: 'setting',
+        icon: 'setting-astro',
         align: 'center'
       },
       {
@@ -80,7 +90,16 @@ export default {
     ]
     const astroToolbars = astroToolbarsMap.map((item) => {
       const toolbarItem = addons.toolbars.find((toolbar) => toolbar.id === item.id)
-      return toolbarItem ? { ...toolbarItem, align: item.align, splitLines: !!item?.splitLines } : item
+      return toolbarItem
+        ? {
+            ...toolbarItem,
+            align: item.align,
+            splitLines: !!item?.splitLines,
+            icon: item?.icon ?? '',
+            undoIcon: item?.undoIcon ?? '',
+            redoIcon: item?.redoIcon ?? ''
+          }
+        : item
     })
     astroToolbars.forEach((item) => {
       if (item.align === 'right') {
@@ -167,7 +186,7 @@ export default {
       position: relative;
       svg {
         cursor: pointer;
-        font-size: 20px;
+        font-size: 22px;
         color: var(--ti-lowcode-toolbar-title-color);
       }
       &:not(.disabled):hover {
@@ -180,6 +199,7 @@ export default {
         cursor: not-allowed;
       }
     }
+
     .tiny-locales {
       height: 35px;
       padding: 5px 12px;

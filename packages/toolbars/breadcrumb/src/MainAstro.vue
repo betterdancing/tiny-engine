@@ -4,9 +4,9 @@
     <div class="project-info">
       <tiny-button @click="openSetting">
         <template #default>
-          <icon-filetext></icon-filetext>
+          <svg-icon name="file-text-astro" />
           <span>应用名称</span>
-          <span>/</span>
+          <span> / </span>
           <span>{{ breadcrumbData[1] }}</span>
         </template>
       </tiny-button>
@@ -16,15 +16,13 @@
 
 <script>
 import { Button } from '@opentiny/vue'
-import { IconFiletext } from '@opentiny/vue-icon'
 import { useBreadcrumb, useLayout, usePage, useCanvas, useNotify, useModal } from '@opentiny/tiny-engine-controller'
 import { constants } from '@opentiny/tiny-engine-utils'
 
 const { PAGE_STATUS } = constants
 export default {
   components: {
-    TinyButton: Button,
-    IconFiletext: IconFiletext()
+    TinyButton: Button
   },
   setup() {
     const { pageState } = useCanvas()
@@ -93,7 +91,9 @@ export default {
   height: 100%;
   font-size: 14px;
   .logo-icon {
-    margin: 0 20px 0 10px;
+    width: 106px;
+    height: 40px;
+    margin: 0 16px 0 13px;
   }
   .project-info {
     :deep(.tiny-button) {
@@ -101,8 +101,7 @@ export default {
       font-weight: bold;
     }
     svg {
-      font-size: 15px;
-      margin-right: 4px;
+      font-size: 24px;
     }
   }
 }

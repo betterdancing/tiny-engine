@@ -299,6 +299,6 @@ export default {
 </script>
 <style lang="less" scoped>
 :deep(.svg-icon) {
-  font-size: 16px;
+  font-size: 18px;
 }
 </style>
