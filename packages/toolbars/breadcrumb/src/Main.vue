@@ -1,84 +1,65 @@
 <template>
   <div class="top-panel-breadcrumb">
-    <svg-icon name="logo" class="logo-icon"></svg-icon>
-    <div class="project-info">
-      <tiny-button @click="openSetting">
-        <template #default>
-          <icon-filetext></icon-filetext>
-          <span>应用名称</span>
-          <span>/</span>
-          <span>{{ breadcrumbData[1] }}</span>
-        </template>
-      </tiny-button>
-    </div>
+    <tiny-breadcrumb separator="：">
+      <tiny-breadcrumb-item v-for="item in breadcrumbData.slice(0, 2)" :key="item">{{ item }}</tiny-breadcrumb-item>
+    </tiny-breadcrumb>
+    <tiny-button
+      class="publish"
+      v-if="breadcrumbData[0] === CONSTANTS.BLOCKTEXT"
+      @click="publishBlock()"
+      type="primary"
+      size="small"
+      >发布区块</tiny-button
+    >
   </div>
+  <block-deploy-dialog v-model:visible="state.showDeployBlock" :nextVersion="nextVersion"></block-deploy-dialog>
 </template>
 
 <script>
-import { Button } from '@opentiny/vue'
-import { IconFiletext } from '@opentiny/vue-icon'
-import { useBreadcrumb, useLayout, usePage, useCanvas, useNotify, useModal } from '@opentiny/tiny-engine-controller'
-import { constants } from '@opentiny/tiny-engine-utils'
-
-const { PAGE_STATUS } = constants
+import { reactive, computed } from 'vue'
+import { Breadcrumb, BreadcrumbItem, Button } from '@opentiny/vue'
+import { useBreadcrumb } from '@opentiny/tiny-engine-controller'
+import { BlockDeployDialog } from '@opentiny/tiny-engine-common'
 export default {
   components: {
-    TinyButton: Button,
-    IconFiletext: IconFiletext()
+    TinyBreadcrumb: Breadcrumb,
+    TinyBreadcrumbItem: BreadcrumbItem,
+    BlockDeployDialog,
+    TinyButton: Button
   },
   setup() {
-    const { pageState } = useCanvas()
-    const { initCurrentPageData, isChangePageData } = usePage()
-    const { PLUGIN_NAME, activePlugin, layoutState, isEmptyPage } = useLayout()
-    const { getBreadcrumbData } = useBreadcrumb()
-    const { confirm, message } = useModal()
+    const state = reactive({
+      showDeployBlock: false
+    })
+    const { CONSTANTS, getBreadcrumbData } = useBreadcrumb()
     const breadcrumbData = getBreadcrumbData()
-
-    const openPageAndInit = async (api) => {
-      const { currentPage } = pageState
-      api.openPageSettingPanel()
-      const page = await api.getPageById(currentPage.id)
-      initCurrentPageData(page)
+    const publishBlock = () => {
+      state.showDeployBlock = true
     }
-    const openPageSetting = () => {
-      const { pageStatus } = layoutState
 
-      if (pageStatus.state === PAGE_STATUS.Lock) {
-        const username = pageStatus.data?.username || ''
-        message({
-          message: `您点击的页面被${username}锁定，暂时无法编辑，请联系解锁`,
-          status: 'info'
-        })
-        return
-      }
+    const nextVersion = computed(() => {
+      const backupList = getBreadcrumbData().value[2] || []
 
-      activePlugin(PLUGIN_NAME.AppManage).then((api) => {
-        if (isChangePageData()) {
-          confirm({
-            title: '提示',
-            message: `当前页面尚未保存，是否要继续切换?`,
-            exec: () => {
-              openPageAndInit(api)
-            }
-          })
-          return
+      let latestVersion = '1.0.0'
+      let latestTime = 0
+      backupList.forEach((v) => {
+        const vTime = new Date(v.created_at).getTime()
+
+        if (vTime > latestTime) {
+          latestTime = vTime
+          latestVersion = v.version
         }
-        openPageAndInit(api)
       })
-    }
 
-    const openSetting = () => {
-      if (isEmptyPage()) {
-        useNotify({ type: 'warning', message: '请先创建页面' })
-
-        return
-      }
-
-      openPageSetting()
-    }
+      // version 符合X.Y.Z的字符结构
+      return latestVersion.replace(/\d+$/, (match) => Number(match) + 1)
+    })
     return {
       breadcrumbData,
-      openSetting
+      publishBlock,
+      state,
+      nextVersion,
+      CONSTANTS
     }
   }
 }
@@ -87,22 +68,45 @@ export default {
 <style lang="less" scoped>
 .top-panel-breadcrumb {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   width: auto;
   height: 100%;
-  font-size: 14px;
-  .logo-icon {
-    margin: 0 20px 0 10px;
+
+  .breadcrumb-label {
+    color: var(--ti-lowcode-toolbar-title-color);
+    border-right: 1px solid var(--ti-lowcode-toolbar-border-color);
+    margin: 0 6px;
+    padding-right: 6px;
+    line-height: 1;
   }
-  .project-info {
-    :deep(.tiny-button) {
-      border-color: var(--ti-lowcode-toolbar-border-color);
-      font-weight: bold;
+
+  .tiny-breadcrumb {
+    height: 100%;
+    line-height: var(--base-top-panel-height);
+    padding: 0 24px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 14px;
+    cursor: inherit;
+  }
+  .tiny-breadcrumb__item {
+    cursor: inherit;
+    user-select: none;
+    :deep(.tiny-breadcrumb__inner) {
+      color: var(--ti-lowcode-toolbar-title-color);
+      text-decoration: none;
     }
-    svg {
-      font-size: 15px;
-      margin-right: 4px;
+
+    :deep(.tiny-breadcrumb__separator) {
+      padding: 0;
+      margin: 0;
+    }
+
+    &:last-child :deep(.tiny-breadcrumb__inner) {
+      font-weight: normal;
+      color: var(--ti-lowcode-toolbar-title-color);
     }
   }
 }

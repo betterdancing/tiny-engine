@@ -1,47 +1,29 @@
 <template>
   <div class="toolbar-wrap">
     <div class="toolbar-icon-wrap">
-      <tiny-popover
-        trigger="hover"
-        width="28"
-        :append-to-body="false"
-        :visible-arrow="false"
-        class="screen-size-popover"
+      <span
+        v-for="(item, index) in state.media"
+        :key="index"
+        :class="['icon', { active: state.activeIndex === index, 'is-rotate': item.view === 'lanMobile' }]"
+        @click="setViewPort(item)"
       >
-        <span
-          v-for="(item, index) in state.media"
-          :key="index"
-          :class="['icon', { active: state.activeIndex === index, 'is-rotate': item.view === 'lanMobile' }]"
-          @click="setViewPort(item)"
-        >
-          <tiny-popover
-            trigger="hover"
-            width="225"
-            placement="right"
-            :open-delay="1000"
-            popper-class="media-icon-popover"
-          >
-            <div class="media-content">
-              <div class="media-title">
-                <div>{{ item.title }}</div>
-                <div v-if="item.subTitle" class="sub-title">
-                  （<svg-icon v-if="item.view === 'desktop'" name="stars"></svg-icon> <span>{{ item.subTitle }}</span
-                  >）
-                </div>
+        <tiny-popover trigger="hover" width="225" append-to-body :open-delay="1000" popper-class="media-icon-popover">
+          <div class="media-content">
+            <div class="media-title">
+              <div>{{ item.title }}</div>
+              <div v-if="item.subTitle" class="sub-title">
+                （<svg-icon v-if="item.view === 'desktop'" name="stars"></svg-icon> <span>{{ item.subTitle }}</span
+                >）
               </div>
-              <div class="content">{{ item.content }}</div>
             </div>
-            <template #reference>
-              <svg-icon :name="item.liked"></svg-icon>
-            </template>
-          </tiny-popover>
-        </span>
-        <template #reference>
-          <svg-icon :name="defaultScreenSize.liked" class="media-icon"></svg-icon>
-        </template>
-      </tiny-popover>
+            <div class="content">{{ item.content }}</div>
+          </div>
+          <template #reference>
+            <svg-icon :name="item.liked" class="media-icon"></svg-icon>
+          </template>
+        </tiny-popover>
+      </span>
     </div>
-    <icon-delta-down class="delta-down"></icon-delta-down>
     <tiny-popover v-if="isCanvas" width="290" trigger="click" popper-class="toolbar-media-popper">
       <template #reference>
         <tiny-popover
@@ -104,15 +86,15 @@
 <script>
 import { ref, reactive, computed, toRaw, watchEffect, onMounted, onUnmounted, watch } from 'vue'
 import { Popover, Input, Switch } from '@opentiny/vue'
-import { IconWebPlus, IconDeltaDown } from '@opentiny/vue-icon'
-import { useLayout, useCanvas } from '@opentiny/tiny-engine-controller'
+import { IconWebPlus } from '@opentiny/vue-icon'
+import { useLayout } from '@opentiny/tiny-engine-controller'
+import { getCanvasType, setCanvasType } from '@opentiny/tiny-engine-canvas'
 
 export default {
   components: {
     TinyPopover: Popover,
     TinyInput: Input,
-    TinySwitch: Switch,
-    IconDeltaDown: IconDeltaDown()
+    TinySwitch: Switch
   },
   props: {
     data: {
@@ -132,8 +114,7 @@ export default {
     const visible = ref(false)
     const active = ref(false)
     const flag = ref(false)
-    const { getCanvasType } = useCanvas().canvasApi.value
-    const isAbsolute = ref(getCanvasType?.() === 'absolute')
+    const isAbsolute = ref(getCanvasType() === 'absolute')
 
     const dimension = computed(() => useLayout().getDimension())
     const scale = computed(() => dimension.value.scale * 100)
@@ -141,7 +122,7 @@ export default {
     const state = reactive({
       activeIndex: 0,
       guideValue: '',
-      width: '1200',
+      width: '',
       scaleValue: '',
       readonly: false,
       viewWidth: null,
@@ -258,8 +239,6 @@ export default {
       ]
     })
 
-    const defaultScreenSize = computed(() => state.media[state.activeIndex])
-
     const hide = () => {
       active.value = false
     }
@@ -371,7 +350,6 @@ export default {
     }
 
     const changeCanvasType = (value) => {
-      const { setCanvasType } = useCanvas().canvasApi.value
       setCanvasType(value ? 'absolute' : 'normal')
     }
 
@@ -416,7 +394,6 @@ export default {
       scale,
       state,
       active,
-      defaultScreenSize,
       flag,
       hide,
       layoutState,
@@ -442,19 +419,14 @@ export default {
   display: flex;
   align-items: center;
 
-  .delta-down {
-    font-size: 12px;
-    width: 28px;
-  }
   .reference-text {
-    width: 130px;
     cursor: pointer;
     height: var(--base-top-panel-height);
     line-height: var(--base-top-panel-height);
     padding: 0 7px;
     color: var(--ti-lowcode-toolbar-breadcrumb-color);
     display: inline-block;
-    font-size: 14px;
+
     & > span {
       &:last-child {
         margin-left: 8px;
@@ -463,34 +435,40 @@ export default {
   }
 
   .toolbar-icon-wrap {
-    width: 28px;
-    line-height: 30px;
-    :deep(.tiny-popover) {
-      padding: 0;
-    }
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
 
-    &:hover {
-      cursor: pointer;
-      background: var(--ti-lowcode-toolbar-view-active-bg);
-    }
     .icon {
-      font-size: 18px;
-      padding: 5px 0;
-      &:hover {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 6px;
+
+      svg {
         cursor: pointer;
+        color: var(--ti-lowcode-toolbar-title-color);
+        outline: none;
+        width: 22px;
+        height: 22px;
+        margin-top: -0.5px;
+      }
+
+      &.active,
+      &:hover {
         background: var(--ti-lowcode-toolbar-view-active-bg);
-        svg {
-          color: var(--ti-lowcode-common-primary-color);
-        }
       }
       &.active {
         svg {
           color: var(--ti-lowcode-common-primary-color);
         }
-        background: var(--ti-lowcode-toolbar-view-active-bg);
       }
     }
   }
+
   .more-setting {
     .setting-item {
       display: flex;

@@ -4,13 +4,12 @@
     :open-delay="1000"
     popper-class="toolbar-right-popover"
     append-to-body
-    content="生成当前应用代码到本地文件"
+    content="生成当前页面/区块的Vue代码到本地文件"
   >
     <template #reference>
-      <tiny-button type="primary" @click="generate">
+      <span class="icon" @click="generate">
         <svg-icon :name="icon"></svg-icon>
-        <span>下载源码</span>
-      </tiny-button>
+      </span>
     </template>
   </tiny-popover>
   <generate-file-selector
@@ -23,25 +22,17 @@
 
 <script>
 import { reactive } from 'vue'
-import { Popover, Button } from '@opentiny/vue'
-import {
-  getGlobalConfig,
-  useBlock,
-  useCanvas,
-  useNotify,
-  useLayout,
-  useEditorInfo
-} from '@opentiny/tiny-engine-controller'
+import { Popover } from '@opentiny/vue'
+import { getGlobalConfig, useBlock, useCanvas, useNotify, useLayout } from '@opentiny/tiny-engine-controller'
 import { fs } from '@opentiny/tiny-engine-utils'
-import { useHttp } from '@opentiny/tiny-engine-http'
-import { generateApp, parseRequiredBlocks } from '@opentiny/tiny-engine-dsl-vue'
-import { fetchMetaData, fetchPageList, fetchBlockSchema } from './http'
+import { getSchema } from '@opentiny/tiny-engine-canvas'
+import { generateVuePage, generateVueBlock } from './generateCode'
+import { fetchCode, fetchMetaData, fetchPageList } from './http'
 import FileSelector from './FileSelector.vue'
 
 export default {
   components: {
     TinyPopover: Popover,
-    TinyButton: Button,
     GenerateFileSelector: FileSelector
   },
   props: {
@@ -62,7 +53,6 @@ export default {
     })
 
     const getParams = () => {
-      const { getSchema } = useCanvas().canvasApi.value
       const params = {
         framework: getGlobalConfig()?.dslMode,
         platform: getGlobalConfig()?.platformId,
@@ -95,130 +85,27 @@ export default {
       }
     }
 
-    const getBlocksSchema = async (pageSchema, blockSet = new Set()) => {
-      let res = []
-
-      const blockNames = parseRequiredBlocks(pageSchema)
-      const promiseList = blockNames
-        .filter((name) => {
-          if (blockSet.has(name)) {
-            return false
-          }
-
-          blockSet.add(name)
-
-          return true
-        })
-        .map((name) => fetchBlockSchema(name))
-      const schemaList = await Promise.allSettled(promiseList)
-      const extraList = []
-
-      schemaList.forEach((item) => {
-        if (item.status === 'fulfilled' && item.value?.[0]?.content) {
-          res.push(item.value[0].content)
-          extraList.push(getBlocksSchema(item.value[0].content, blockSet))
-        }
-      })
-      ;(await Promise.allSettled(extraList)).forEach((item) => {
-        if (item.status === 'fulfilled' && item.value) {
-          res.push(...item.value)
-        }
-      })
-
-      return res
-    }
-
-    const instance = generateApp()
-
-    const getAllPageDetails = async (pageList) => {
-      const detailPromise = pageList.map(({ id }) => useLayout().getPluginApi('AppManage').getPageById(id))
-      const detailList = await Promise.allSettled(detailPromise)
-
-      return detailList
-        .map((item) => {
-          if (item.status === 'fulfilled' && item.value) {
-            return item.value
-          }
-        })
-        .filter((item) => Boolean(item))
-    }
-
     const getPreGenerateInfo = async () => {
       const params = getParams()
-      const { id } = useEditorInfo().useInfo()
-      const promises = [
-        useHttp().get(`/app-center/v1/api/apps/schema/${id}`),
-        fetchMetaData(params),
-        fetchPageList(params.app)
-      ]
+      const promises = [fetchCode(params), fetchMetaData(params), fetchPageList(params.app)]
 
       if (!state.dirHandle) {
         promises.push(fs.getUserBaseDirHandle())
       }
 
-      const [appData, metaData, pageList, dirHandle] = await Promise.all(promises)
-      const pageDetailList = await getAllPageDetails(pageList)
+      const [codeList, metaData, pageList, dirHandle] = await Promise.all(promises)
 
-      const blockSet = new Set()
-      const list = pageDetailList.map((page) => getBlocksSchema(page.page_content, blockSet))
-      const blocks = await Promise.allSettled(list)
+      return [params, codeList, metaData, pageList, dirHandle]
+    }
 
-      const blockSchema = []
-      blocks.forEach((item) => {
-        if (item.status === 'fulfilled' && Array.isArray(item.value)) {
-          blockSchema.push(...item.value)
-        }
-      })
-
-      const appSchema = {
-        // metaData 包含dataSource、utils、i18n、globalState
-        ...metaData,
-        // 页面 schema
-        pageSchema: pageDetailList.map((item) => {
-          const { page_content, ...meta } = item
-
-          return {
-            ...page_content,
-            meta: {
-              ...meta,
-              router: meta.route
-            }
-          }
-        }),
-        blockSchema,
-        // 物料数据
-        componentsMap: [...(appData.componentsMap || [])],
-
-        meta: {
-          ...(appData.meta || {})
-        }
+    const getToSaveFilesInfo = ({ params, codeList, metaData, pageList }) => {
+      const handlers = {
+        Block: generateVueBlock,
+        Page: generateVuePage
       }
+      const filesInfo = handlers[params.type]({ params, codeList, metaData, pageList })
 
-      const res = await instance.generate(appSchema)
-
-      const { genResult = [] } = res || {}
-      const fileRes = genResult.map(({ fileContent, fileName, path, fileType }) => {
-        const slash = path.endsWith('/') || path === '.' ? '' : '/'
-        let filePath = `${path}${slash}`
-        if (filePath.startsWith('./')) {
-          filePath = filePath.slice(2)
-        }
-        if (filePath.startsWith('.')) {
-          filePath = filePath.slice(1)
-        }
-
-        if (filePath.startsWith('/')) {
-          filePath = filePath.slice(1)
-        }
-
-        return {
-          fileContent,
-          filePath: `${filePath}${fileName}`,
-          fileType
-        }
-      })
-
-      return [dirHandle, fileRes]
+      return filesInfo
     }
 
     const saveCodeToLocal = async (filesInfo) => {
@@ -246,10 +133,10 @@ export default {
 
       try {
         // 保存代码前置任务：调用接口生成代码并获取用户本地文件夹授权
-        const [dirHandle, fileRes] = await getPreGenerateInfo()
+        const [params, codeList, metaData, pageList, dirHandle] = await getPreGenerateInfo()
 
         // 暂存待生成代码文件信息
-        state.saveFilesInfo = fileRes
+        state.saveFilesInfo = getToSaveFilesInfo({ params, codeList, metaData, pageList })
 
         // 保存用户授权的文件夹句柄
         initDirHandle(dirHandle)
@@ -297,8 +184,4 @@ export default {
   }
 }
 </script>
-<style lang="less" scoped>
-:deep(.svg-icon) {
-  font-size: 16px;
-}
-</style>
+<style lang="less" scoped></style>

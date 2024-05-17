@@ -4,10 +4,7 @@
       <component :is="item.component" v-for="item in leftBar" :key="item.id"></component>
     </div>
     <div class="toolbar-center">
-      <template v-for="item in centerBar" :key="item.id">
-        <component :is="item.component"></component>
-        <span v-if="item?.splitLines">|</span>
-      </template>
+      <component :is="item.component" v-for="item in centerBar" :key="item.id"></component>
     </div>
     <div class="toolbar-right">
       <component :is="item.component" v-for="item in rightBar" :key="item.id"></component>
@@ -34,55 +31,8 @@ export default {
     const state = reactive({
       showDeployBlock: false
     })
-    const astroToolbarsMap = [
-      {
-        id: 'breadcrumb',
-        align: 'left'
-      },
-      {
-        id: 'redoundo',
-        align: 'center'
-      },
-      {
-        id: 'save',
-        align: 'center'
-      },
-      {
-        id: 'refresh',
-        align: 'center',
-        splitLines: true
-      },
-      {
-        id: 'setting',
-        align: 'center'
-      },
-      {
-        id: 'lang',
-        align: 'center',
-        splitLines: true
-      },
-      {
-        id: 'media',
-        align: 'center'
-      },
-      {
-        id: 'user',
-        align: 'right'
-      },
-      {
-        id: 'preview',
-        align: 'right'
-      },
-      {
-        id: 'genarate-vue',
-        align: 'right'
-      }
-    ]
-    const astroToolbars = astroToolbarsMap.map((item) => {
-      const toolbarItem = addons.toolbars.find((toolbar) => toolbar.id === item.id)
-      return toolbarItem ? { ...toolbarItem, align: item.align, splitLines: !!item?.splitLines } : item
-    })
-    astroToolbars.forEach((item) => {
+
+    addons.toolbars.forEach((item) => {
       if (item.align === 'right') {
         rightBar.push(item)
       } else if (item.align === 'center') {
@@ -137,32 +87,19 @@ export default {
   .toolbar-left {
     margin: 0 1px;
   }
-  .toolbar-center {
-    height: 32px;
-    line-height: 32px;
-    padding: 0 10px;
-    border: 1px solid var(--ti-lowcode-toolbar-border-color);
-    border-radius: 30px;
-    span {
-      color: var(--ti-lowcode-toolbar-border-color);
-    }
-    :deep(.svg-icon) {
-      font-size: 18px !important;
-    }
-  }
 
-  .toolbar-center,
   .toolbar-right {
     margin: 0 6px;
     margin-right: 24px;
     column-gap: 6px;
     align-items: center;
     :deep(.icon) {
-      width: 28px;
       display: inline-flex;
       justify-content: center;
       align-items: center;
       vertical-align: middle;
+      width: 32px;
+      height: 32px;
       border-radius: 6px;
       position: relative;
       svg {
@@ -203,6 +140,11 @@ export default {
 
 @media only screen and (max-width: 1280px) {
   .tiny-engine-toolbar {
+    .toolbar-center {
+      flex: 1;
+      justify-content: center;
+    }
+
     :deep(.top-panel-breadcrumb) {
       width: auto;
     }

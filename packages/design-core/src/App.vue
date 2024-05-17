@@ -1,7 +1,7 @@
 <template>
   <tiny-config-provider :design="designSmbConfig">
     <div id="tiny-engine">
-      <design-toolbars></design-toolbars>
+      <design-toolbars-astro></design-toolbars-astro>
       <div class="tiny-engine-main">
         <div class="tiny-engine-left-wrap">
           <div class="tiny-engine-content-wrap">
@@ -32,7 +32,7 @@ import {
 } from '@opentiny/tiny-engine-controller'
 import AppManage from '@opentiny/tiny-engine-plugin-page'
 import { isVsCodeEnv } from '@opentiny/tiny-engine-controller/js/environments'
-import DesignToolbars from './DesignToolbars.vue'
+import DesignToolbarsAstro from './DesignToolbarsAstro.vue'
 import DesignPlugins from './DesignPlugins.vue'
 import DesignCanvas from './DesignCanvas.vue'
 import DesignSettings from './DesignSettings.vue'
@@ -50,7 +50,7 @@ const { BROADCAST_CHANNEL } = constants
 export default {
   name: 'TinyLowCode',
   components: {
-    DesignToolbars,
+    DesignToolbarsAstro,
     DesignPlugins,
     DesignCanvas,
     DesignSettings,

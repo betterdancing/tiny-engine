@@ -6,7 +6,26 @@
     <template #content>
       <div class="btn-box">
         <tiny-button @click="openEditor($event, {})">新增词条</tiny-button>
+        <tiny-file-upload
+          ref="upload"
+          size="small"
+          :auto-upload="false"
+          :show-file-list="false"
+          action="/"
+          @change="handleChange"
+        >
+          <template #trigger>
+            <tiny-button>批量上传</tiny-button>
+          </template>
+        </tiny-file-upload>
         <tiny-button @click="batchDelete" :disabled="!selectedRowLength">批量删除</tiny-button>
+        <div class="download-btn" @click="downloadFile">
+          <svg-icon name="generate-code"></svg-icon>
+          <tiny-button type="text"> 下载导入模板 </tiny-button>
+        </div>
+        <p v-show="isLoading && notEmpty">
+          <span id="boxeight" class="i18n-loading"></span><span>正在导入，请稍后...</span>
+        </p>
       </div>
       <div class="language-plugin-table">
         <div class="language-search-box">
@@ -100,12 +119,15 @@
 </template>
 
 <script lang="jsx">
-import { computed, ref, watchEffect, reactive, onMounted } from 'vue'
+import { computed, ref, watchEffect, reactive, onMounted, nextTick, resolveComponent } from 'vue'
 import useClipboard from 'vue-clipboard3'
-import { Grid, GridColumn, Input, Popover, Button, Tooltip, Select } from '@opentiny/vue'
+import { Grid, GridColumn, Input, Popover, Button, FileUpload, Loading, Tooltip, Select } from '@opentiny/vue'
+import { iconLoadingShadow } from '@opentiny/vue-icon'
 import { PluginPanel, LinkButton, SearchEmpty } from '@opentiny/tiny-engine-common'
-import { useTranslate, useModal, useHelp } from '@opentiny/tiny-engine-controller'
+import { useTranslate, useApp, useModal, getGlobalConfig, useHelp } from '@opentiny/tiny-engine-controller'
 import { utils } from '@opentiny/tiny-engine-utils'
+import { useHttp } from '@opentiny/tiny-engine-http'
+import { BASE_URL } from '@opentiny/tiny-engine-controller/js/environments'
 
 export default {
   components: {
@@ -118,10 +140,15 @@ export default {
     PluginPanel,
     LinkButton,
     TinySelect: Select,
+    TinyFileUpload: FileUpload,
     SearchEmpty
   },
   setup() {
     // 组件库iconLoadingShadow图标不能切换颜色，因此不同主题用不同icon
+    const SvgIcon = resolveComponent('SvgIcon')
+    const lightSpinnerIcon = iconLoadingShadow()
+    const darkSpinnerIcon = () => <SvgIcon name="loading" />
+    const isLightTheme = getGlobalConfig().theme === 'light'
     const { getLangs, i18nResource, currentLanguage, getI18nData } = useTranslate()
     const { toClipboard } = useClipboard()
     const fullLangList = computed(() => {
@@ -260,6 +287,10 @@ export default {
       })
     }
 
+    const downloadFile = () => {
+      window.open(`${BASE_URL}src/app/public/i18n-mock/i18n-template-for-batch-import.zip`)
+    }
+
     const openDeletePopover = (row) => {
       const { confirm } = useModal()
 
@@ -325,6 +356,43 @@ export default {
         })
       })
     }
+    const handleChange = (data) => {
+      const appId = useApp().appInfoState.selectedId
+      const action = `/app-center/api/apps/${appId}/i18n/entries/update`
+
+      const loadingTarget = notEmpty.value ? '#boxeight' : '#empty-loading-box'
+      const loadintText = notEmpty.value ? '' : '正在导入'
+      const loadingIcon = isLightTheme ? lightSpinnerIcon : darkSpinnerIcon
+      isLoading.value = true
+
+      let loadingInstance
+      nextTick(() => {
+        loadingInstance = Loading.service({
+          lock: true,
+          text: loadintText,
+          spinner: loadingIcon,
+          target: loadingTarget,
+          background: 'transparent'
+        })
+      })
+      const formdata = new FormData()
+      // 1中文 2英文
+      let key = '1'
+      if (data.name.indexOf('en') > -1) {
+        key = '2'
+      }
+      formdata.set(key, data.raw)
+
+      useHttp()
+        .post(action, formdata)
+        .then(() => {
+          handleAvatarSuccess()
+        })
+        .finally(() => {
+          loadingInstance.close()
+          isLoading.value = false
+        })
+    }
 
     return {
       sortTypeChanges,
@@ -343,12 +411,14 @@ export default {
       openEditor,
       openDeletePopover,
       copyId,
+      handleChange,
       upload,
       handleAvatarSuccess,
       isLoading,
       current,
       confirm,
       i18nTable,
+      downloadFile,
       isEditMode,
       editingRow,
       batchDelete,
@@ -550,6 +620,22 @@ export default {
         }
       }
     }
+  }
+}
+
+.download-btn {
+  cursor: pointer;
+  display: inline-block;
+  font-size: 12px;
+  text-align: left;
+  padding: 0;
+  margin-left: 8px;
+  color: var(--ti-lowcode-base-text-color);
+  svg {
+    font-size: 16px;
+  }
+  .tiny-button.tiny-button--text {
+    color: var(--ti-lowcode-base-text-color);
   }
 }
 :deep(.help-box) {
